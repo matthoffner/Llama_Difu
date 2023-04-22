@@ -1,29 +1,7 @@
-import os
 
-import llama_index
-
-from llama_index import (
-    LLMPredictor,
-    GPTTreeIndex,
-    Document,
-    GPTSimpleVectorIndex,
-    SimpleDirectoryReader,
-    RefinePrompt,
-    QuestionAnswerPrompt,
-    GPTListIndex,
-    PromptHelper,
-)
-from pathlib import Path
-from tqdm import tqdm
-import re
-from llama_index.composability import ComposableGraph
-from IPython.display import Markdown, display
-import json
 from llama_index import Prompt
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Tuple, Type
-
+from typing import List
 import logging
-import sys
 
 def compact_text_chunks(self, prompt: Prompt, text_chunks: List[str]) -> List[str]:
     logging.debug("Compacting text chunks...🚀🚀🚀")

@@ -7,7 +7,7 @@ from llama_index import (
     GPTListIndex,
     ServiceContext
 )
-from llama_index import SimpleDirectoryReader, download_loader
+from llama_index import download_loader
 from llama_index import (
     Document,
     LLMPredictor,
@@ -21,9 +21,16 @@ from duckduckgo_search import ddg
 from utils import *
 
 import logging
-import sys
+import argparse
 
-model_path = "ggml-vicuna-7b-q4_0.bin"
+parser = argparse.ArgumentParser()
+parser.add_argument('--model', type=str, required=False)
+args = parser.parse_args()
+if args.model is None:
+    model_path = 'ggml-vicuna-7b-q4_0.bin'
+else:
+    model_path = args.model
+
 llm = LlamaCpp(model_path=model_path,
                 n_ctx=500, 
                 use_mlock=True, 
@@ -100,33 +107,8 @@ def construct_index(
     documents = get_documents(file_src)
 
     try:
-        if index_type == "GPTSimpleVectorIndex":
-            index = GPTSimpleVectorIndex.from_documents(
-                documents,
-                service_context
-            )
-            index_name += "_GPTSimpleVectorIndex"
-        elif index_type == "GPTTreeIndex":
-            index = GPTTreeIndex.from_documents(
-                documents,
-                llm_predictor=llm_predictor,
-                prompt_helper=prompt_helper,
-                num_children=num_children,
-            )
-            index_name += "_GPTTreeIndex"
-        elif index_type == "GPTKeywordTableIndex":
-            index = GPTKeywordTableIndex.from_documents(
-                documents,
-                llm_predictor=llm_predictor,
-                prompt_helper=prompt_helper,
-                max_keywords_per_chunk=max_keywords_per_chunk,
-            )
-            index_name += "_GPTKeywordTableIndex"
-        elif index_type == "GPTListIndex":
-            index = GPTListIndex.from_documents(
-                documents, llm_predictor=llm_predictor, prompt_helper=prompt_helper
-            )
-            index_name += "_GPTListIndex"
+        index = GPTListIndex.from_documents(documents, service_context=service_context)
+        index_name += "_GPTListIndex"
     except Exception as e:
         print(e)
         return None
@@ -198,10 +180,15 @@ def ask_ai(
 
     logging.debug("Index file found")
     logging.debug("Querying index...")
-
-    llm_predictor = LLMPredictor(
-        llm=llm
+    prompt_helper = PromptHelper(
+        4096,
+        512,
+        20,
+        None,
+        None,
+        separator=" ",
     )
+    service_context = ServiceContext.from_defaults(llm_predictor=llm, prompt_helper=prompt_helper)
 
     response = None  # Initialize response variable to avoid UnboundLocalError
     if "GPTTreeIndex" in index_select:
@@ -214,7 +201,7 @@ def ask_ai(
         response = index.query(question)
     elif "GPTListIndex" in index_select:
         logging.debug("Using GPTListIndex")
-        index = GPTListIndex.load_from_disk(index_path)
+        index = GPTListIndex.load_from_disk(index_path, service_context=service_context)
         qa_prompt = QuestionAnswerPrompt(prompt_tmpl)
         response = index.query(question)
     else:
@@ -230,9 +217,6 @@ def ask_ai(
             refine_template=rf_prompt,
             response_mode="compact"
         )
-
-    response = llm_predictor.predict(question)
-    print(response)
 
     if response is not None:
         logging.info(f"Response: {response}")

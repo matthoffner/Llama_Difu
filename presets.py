@@ -10,19 +10,6 @@ Make sure to cite results using [number] notation after the reference.
 If the provided context information refer to multiple subjects with the same name, write separate answers for each subject.
 Use prior knowledge only if the given context didn't provide enough information.
 Answer the question: {query_str}
-Reply in English
-""",
-
-"New Default":
-"""\
-Context information is below.
----------------------
-{context_str}
----------------------
-Given the context information and not prior knowledge,
-answer the question: {query_str}
-Answer in bullet points.
-Answer in the same language as the question, such as English, 中文, 日本語, Español, Français, or Deutsch.
 """,
 
 "MZhao Mode":
@@ -75,7 +62,6 @@ We have the opportunity to refine the existing answer
 {context_msg}
 ------------
 Given the new context, refine the original answer to better
-Answer in the same language as the question, such as English, 中文, 日本語, Español, Français, or Deutsch.
 If the context isn't useful, return the original answer.
 """
 }
