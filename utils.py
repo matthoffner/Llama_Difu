@@ -3,6 +3,22 @@ import gradio as gr
 from zipfile import ZipFile
 from presets import *
 
+def save_index(index, index_name, exist_ok=False):
+    file_path = f"./index/{index_name}.json"
+
+    if not os.path.exists(file_path) or exist_ok:
+        index.save_to_disk(file_path)
+        print(f'Saved file "{file_path}".')
+    else:
+        i = 1
+        while True:
+            new_file_path = f'{os.path.splitext(file_path)[0]}_{i}{os.path.splitext(file_path)[1]}'
+            if not os.path.exists(new_file_path):
+                index.save_to_disk(new_file_path)
+                print(f'Saved file "{new_file_path}".')
+                break
+            i += 1
+
 def refresh_json_list(plain=False):
     json_list = []
     for root, dirs, files in os.walk("./index"):
@@ -31,37 +47,51 @@ def change_prompt_tmpl(tmpl_select):
     new_tmpl = prompt_tmpl_dict[tmpl_select]
     return gr.update(value=new_tmpl)
 
+def change_refine_tmpl(refine_select):
+    new_tmpl = refine_tmpl_dict[refine_select]
+    return gr.update(value=new_tmpl)
+
+def lock_params(index_type):
+    if index_type == "GPTSimpleVectorIndex" or index_type == "GPTListIndex":
+        return gr.Slider.update(interactive=False, label="子节点数量（当前索引类型不可用）"), gr.Slider.update(interactive=False, label="每段关键词数量（当前索引类型不可用）")
+    elif index_type == "GPTTreeIndex":
+        return gr.Slider.update(interactive=True, label="子节点数量"), gr.Slider.update(interactive=False, label="每段关键词数量（当前索引类型不可用）")
+    elif index_type == "GPTKeywordTableIndex":
+        return gr.Slider.update(interactive=False, label="子节点数量（当前索引类型不可用）"), gr.Slider.update(interactive=True, label="每段关键词数量")
+
+def add_space(text):
+    punctuations = {'，': '， ', '。': '。 ', '？': '？ ', '！': '！ ', '：': '： ', '；': '； '}
+    for cn_punc, en_punc in punctuations.items():
+        text = text.replace(cn_punc, en_punc)
+    return text
+
 def parse_text(text):
     lines = text.split("\n")
     lines = [line for line in lines if line != ""]
     count = 0
-    firstline = False
     for i, line in enumerate(lines):
         if "```" in line:
             count += 1
             items = line.split('`')
             if count % 2 == 1:
-                lines[i] = f'<pre><code class="{items[-1]}">'
-                firstline = True
+                lines[i] = f'<pre><code class="language-{items[-1]}">'
             else:
-                lines[i] = f'</code></pre>'
+                lines[i] = f'<br></code></pre>'
         else:
             if i > 0:
                 if count % 2 == 1:
-                    line = line.replace("&", "&amp;")
-                    line = line.replace("\"", "`\"`")
-                    line = line.replace("\'", "`\'`")
+                    line = line.replace("`", "\`")
                     line = line.replace("<", "&lt;")
                     line = line.replace(">", "&gt;")
                     line = line.replace(" ", "&nbsp;")
                     line = line.replace("*", "&ast;")
                     line = line.replace("_", "&lowbar;")
-                    line = line.replace("#", "&#35;")
                     line = line.replace("-", "&#45;")
                     line = line.replace(".", "&#46;")
                     line = line.replace("!", "&#33;")
                     line = line.replace("(", "&#40;")
                     line = line.replace(")", "&#41;")
+                    line = line.replace("$", "&#36;")
                 lines[i] = "<br>"+line
     text = "".join(lines)
     return text

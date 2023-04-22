@@ -3,3 +3,6 @@ llama_index
 langchain
 googlesearch-python
 baidusearch
+duckduckgo_search
+llama-cpp-python==0.1.35
+IPython

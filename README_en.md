@@ -1,6 +1,6 @@
 <div align="right">
-  <!-- 语言: -->
-  简体中文 | <a title="English" href="README_en.md">English</a>
+  <!-- Language: -->
+  <a title="English" href="README.md"></a> | English
 </div>
 
 # Llama_difu —— Llama Do it for You
@@ -11,43 +11,43 @@
 
 ---
 
-为 [Llama_index](https://github.com/jerryjliu/gpt_index) (gpt_index)做了个便于使用的图形界面。可以让ChatGPT访问自定义的内容，甚至是数据库！
+A Web-UI for [Llama_index](https://github.com/jerryjliu/gpt_index) (gpt_index). Allow ChatGPT to access your own content, even databases!
 
 ![演示视频](https://user-images.githubusercontent.com/70903329/225239555-a29fa01b-e7ba-4041-bbce-187ac3f7d333.gif)
 
-## 特点
+## Feature
 
-* [X] 允许ChatGPT访问您自己的数据库
-* [X] 新谷歌：像新必应一样，但使用谷歌！
-* [X] 更方便、高级的索引构建
-* [X] 自定义Prompt模板
-* [X] 多文件支持（并且支持不同格式）
-* [ ] 更多LLMPredictor
+## Features
 
-## 用法
+- [X] Allow ChatGPT to access your own databases
+- [X] New Google: Like New Bing, but using Google!
+- [X] More convenient and advanced index building
+- [X] Customizable Prompt templates
+- [X] Multi-file support (and support for different formats)
+- [ ] More LLMPredictor
 
-**克隆此仓库**
+## Usage
+
+**Clone this repo**
 
 ```bash
 git clone https://github.com/MZhao-ouo/Llama_difu.git
 cd Llama_difu
 ```
 
-**安装依赖项**
+**Install dependencies**
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**运行**
+**Run**
 
 ```bash
 python main.py
 ```
 
-**(可选) 默认API密钥**
-
-创建 `args.json` 文件：
+Create  `args.json` :
 
 ```json
 {

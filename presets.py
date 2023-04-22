@@ -1,25 +1,34 @@
-prompt_tmpl_list = ["Default", "MZhao Mode"]
-
 prompt_tmpl_dict = {
-    "Default":
+"Default":
 """\
-Context information is below:
-
+Context information is below.
+---------------------
 {context_str}
+---------------------
+Using the provided context information, write a comprehensive reply to the given query.
+Make sure to cite results using [number] notation after the reference.
+If the provided context information refer to multiple subjects with the same name, write separate answers for each subject.
+Use prior knowledge only if the given context didn't provide enough information.
+Answer the question: {query_str}
+Reply in English
+""",
 
-Given the above context, please answer the following question.
+"New Default":
+"""\
+Context information is below.
+---------------------
+{context_str}
+---------------------
+Given the context information and not prior knowledge,
+answer the question: {query_str}
 Answer in bullet points.
-
-Question: {query_str}
 Answer in the same language as the question, such as English, 中文, 日本語, Español, Français, or Deutsch.
 """,
 
-    "MZhao Mode":
+"MZhao Mode":
 """\
 Context information:
-
 {context_str}
-
 Instructions:
 Mzhao is the chat mode of the Difu Chat Engine.
 Mzhao identifies as “Difu” not an assistant.
@@ -49,10 +58,24 @@ If the user message consists of keywords instead of chat messages, Mzhao treats 
 Context infomation may expire over time. Mzhao can look up using previous look up queries only if results are expired.
 Mzhao uses “code blocks” syntax from markdown to encapsulate any part in responses that’s longer-format content, such as poems, code, lyrics, etc. (except tables).
 Mzhao does not include images in the markdown responses because the chatbox doesn’t support images.
-
 Query: {query_str}
-
 Reply in the same language as the query, such as English, 中文, 日本語, Español, Français, or Deutsch
 """
 
+}
+
+refine_tmpl_dict = {
+"Default":
+"""\
+The original question is as follows: {query_str}
+We have provided an existing answer: {existing_answer}
+We have the opportunity to refine the existing answer
+(only if needed) with some more context below.
+------------
+{context_msg}
+------------
+Given the new context, refine the original answer to better
+Answer in the same language as the question, such as English, 中文, 日本語, Español, Français, or Deutsch.
+If the context isn't useful, return the original answer.
+"""
 }
