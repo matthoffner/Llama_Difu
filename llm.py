@@ -2,19 +2,23 @@ import os
 from langchain.llms import LlamaCpp
 from llama_index import (
     GPTVectorStoreIndex,
-    GPTTreeIndex,
-    GPTKeywordTableIndex,
+    GPTVectorStoreIndex,
     GPTListIndex,
-    ServiceContext
+    ServiceContext,
+    ResponseSynthesizer
 )
-from llama_index import download_loader
+from llama_index import download_loader, StorageContext, load_index_from_storage
 from llama_index import (
     Document,
     LLMPredictor,
-    PromptHelper,
-    QuestionAnswerPrompt,
-    RefinePrompt,
+    PromptHelper
 )
+from llama_index.indices.postprocessor import SimilarityPostprocessor
+from llama_index.query_engine import RetrieverQueryEngine
+from llama_index.storage.index_store import SimpleIndexStore
+from llama_index.storage.docstore import SimpleDocumentStore
+from llama_index.storage.storage_context import SimpleVectorStore
+
 from googlesearch import search as google_search
 
 from utils import *
@@ -23,12 +27,9 @@ import logging
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', type=str, required=False)
+parser.add_argument('--model', type=str, required=True)
 args = parser.parse_args()
-if args.model is None:
-    model_path = 'ggml-vicuna-7b-q4_0.bin'
-else:
-    model_path = args.model
+model_path = args.model
 
 llm = LlamaCpp(model_path=model_path,
                 n_ctx=500, 
@@ -41,6 +42,19 @@ llm = LlamaCpp(model_path=model_path,
                 last_n_tokens_size=100,
                 n_threads=4,
                 f16_kv=True)
+
+
+def query_llm(index, prompt, service_context, retriever_mode='embedding', response_mode='tree_summarize'):
+    response_synthesizer = ResponseSynthesizer.from_args(
+        service_context=service_context,
+        node_postprocessors=[
+            SimilarityPostprocessor(similarity_cutoff=0.7)
+        ]
+    )
+    retriever = index.as_retriever(retriever_mode=retriever_mode, service_context=service_context)
+    query_engine = RetrieverQueryEngine.from_args(retriever, response_synthesizer=response_synthesizer, response_mode=response_mode,  service_context=service_context)
+    return query_engine.query(prompt)
+
 
 def get_documents(file_src):
     documents = []
@@ -106,13 +120,17 @@ def construct_index(
     documents = get_documents(file_src)
 
     try:
-        index = GPTListIndex.from_documents(documents, service_context=service_context)
-        index_name += "_GPTListIndex"
+        file_name = f"{index_name}.json"
+        if index_type == "_GPTVectorStoreIndex":
+            index = GPTVectorStoreIndex.from_documents(documents, service_context=service_context)
+        else:
+            index = GPTListIndex.from_documents(documents, service_context=service_context)
+        index.storage_context.persist(persist_dir="./index")
     except Exception as e:
         print(e)
         return None
 
-    save_index(index, index_name)
+    
     newlist = refresh_json_list(plain=True)
     return gr.Dropdown.update(choices=newlist, value=index_name)
 
@@ -188,34 +206,17 @@ def ask_ai(
         separator=" ",
     )
     service_context = ServiceContext.from_defaults(llm_predictor=llm, prompt_helper=prompt_helper)
-
     response = None  # Initialize response variable to avoid UnboundLocalError
-    if "GPTTreeIndex" in index_select:
-        logging.debug("Using GPTTreeIndex")
-        index = GPTTreeIndex.load_from_disk(index_path)
-        response = index.query(question)
-    elif "GPTKeywordTableIndex" in index_select:
-        logging.debug("Using GPTKeywordTableIndex")
-        index = GPTKeywordTableIndex.load_from_disk(index_path)
-        response = index.query(question)
-    elif "GPTListIndex" in index_select:
-        logging.debug("Using GPTListIndex")
-        index = GPTListIndex.load_from_disk(index_path, service_context=service_context)
-        qa_prompt = QuestionAnswerPrompt(prompt_tmpl)
-        response = index.query(qa_prompt)
-    else:
-        # if "GPTVectorStoreIndex" in index_select or not specified
-        logging.debug("Using GPTVectorStoreIndex")
-        index = GPTVectorStoreIndex.load_from_disk(index_path)
-        qa_prompt = QuestionAnswerPrompt(prompt_tmpl)
-        rf_prompt = RefinePrompt(refine_tmpl)
-        response = index.query(
-            question,
-            similarity_top_k=sim_k,
-            text_qa_template=qa_prompt,
-            refine_template=rf_prompt,
-            response_mode="compact"
-        )
+    logging.debug("Using GPTVectorStoreIndex")
+    storage_context = StorageContext.from_defaults(
+        docstore=SimpleDocumentStore.from_persist_dir(persist_dir="./index"),
+        vector_store=SimpleVectorStore.from_persist_dir(persist_dir="./index"),
+        index_store=SimpleIndexStore.from_persist_dir(persist_dir="./index"),
+    )
+    index = load_index_from_storage(service_context=service_context, storage_context=storage_context)
+    #qa_prompt = QuestionAnswerPrompt(prompt_tmpl)
+    #rf_prompt = RefinePrompt(refine_tmpl)
+    response = query_llm(index, question, service_context=service_context)
 
     if response is not None:
         logging.info(f"Response: {response}")
