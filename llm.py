@@ -16,7 +16,6 @@ from llama_index import (
     RefinePrompt,
 )
 from googlesearch import search as google_search
-from duckduckgo_search import ddg
 
 from utils import *
 
@@ -254,14 +253,11 @@ def search_construct(question, search_mode, index_select):
                 print(f"Googling: {keywords}")
                 search_iter = google_search(keywords, num_results=5)
                 links += [next(search_iter) for _ in range(10)]
-            if "DuckDuckGo" in search_engine:
-                results = ddg(keywords, max_results=5)
-                links += [r["href"] for r in results]
             if "Manual" in search_engine:
                 print(f"Searching manually: {keywords}")
                 print("Please input links manually. (Enter 'q' to quit.)")
                 while True:
-                    link = input("请手动输入一个链接：\n")
+                    link = input("Enter link：\n")
                     if link == "q":
                         break
                     else:
