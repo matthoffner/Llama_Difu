@@ -1,7 +1,7 @@
 import os
 from langchain.llms import LlamaCpp
 from llama_index import (
-    GPTSimpleVectorIndex,
+    GPTVectorStoreIndex,
     GPTTreeIndex,
     GPTKeywordTableIndex,
     GPTListIndex,
@@ -202,11 +202,11 @@ def ask_ai(
         logging.debug("Using GPTListIndex")
         index = GPTListIndex.load_from_disk(index_path, service_context=service_context)
         qa_prompt = QuestionAnswerPrompt(prompt_tmpl)
-        response = index.query(question)
+        response = index.query(qa_prompt)
     else:
-        # if "GPTSimpleVectorIndex" in index_select or not specified
-        logging.debug("Using GPTSimpleVectorIndex")
-        index = GPTSimpleVectorIndex.load_from_disk(index_path)
+        # if "GPTVectorStoreIndex" in index_select or not specified
+        logging.debug("Using GPTVectorStoreIndex")
+        index = GPTVectorStoreIndex.load_from_disk(index_path)
         qa_prompt = QuestionAnswerPrompt(prompt_tmpl)
         rf_prompt = RefinePrompt(refine_tmpl)
         response = index.query(
@@ -268,6 +268,6 @@ def search_construct(question, search_mode, index_select):
     print("Extracting data from links...")
     print("\n".join(links))
     search_index_name = " ".join(search_terms.split(","))
-    construct_index(links, search_index_name, "GPTSimpleVectorIndex")
+    construct_index(links, search_index_name, "GPTVectorStoreIndex")
     print(f"Index {search_index_name} constructed.")
-    return search_index_name + "_GPTSimpleVectorIndex"
+    return search_index_name + "_GPTVectorStoreIndex"
