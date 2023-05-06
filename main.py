@@ -62,7 +62,7 @@ with gr.Blocks(css="") as demo:
     with gr.Tab("Upload"):
         with gr.Row():
             with gr.Column():
-                index_type = gr.Dropdown(choices=["GPTListIndex"], label="index_type", value="GPTListIndex")
+                index_type = gr.Dropdown(choices=["GPTListIndex", "GPTVectorStoreIndex"], label="index_type", value="GPTListIndex")
                 upload_file = gr.Files(label="upload_file .txt, .pdf, .epub)")
                 new_index_name = gr.Textbox(placeholder="new_index_name: ", show_label=False).style(container=False)
                 construct_btn = gr.Button("⚒️ Index", variant="primary")
