@@ -5,8 +5,14 @@ from llama_index import (
     GPTVectorStoreIndex,
     GPTListIndex,
     ServiceContext,
-    ResponseSynthesizer
+    ResponseSynthesizer,
+    LangchainEmbedding
 )
+#from langchain.text_splitter import CharacterTextSplitter
+#from llama_index.node_parser import SimpleNodeParser
+
+from langchain.embeddings import HuggingFaceEmbeddings
+
 from llama_index import download_loader, StorageContext, load_index_from_storage
 from llama_index import (
     Document,
@@ -31,22 +37,11 @@ parser.add_argument('--model', type=str, required=True)
 args = parser.parse_args()
 model_path = args.model
 
-llm = LlamaCpp(model_path=model_path,
-                n_ctx=500, 
-                use_mlock=True, 
-                top_k=10000, 
-                max_tokens=100, 
-                n_parts=-1, 
-                temperature=0.8, 
-                top_p=0.40,
-                last_n_tokens_size=100,
-                n_threads=4,
-                f16_kv=True)
-
 
 def query_llm(index, prompt, service_context, retriever_mode='embedding', response_mode='tree_summarize'):
     response_synthesizer = ResponseSynthesizer.from_args(
         service_context=service_context,
+        use_async=True,
         node_postprocessors=[
             SimilarityPostprocessor(similarity_cutoff=0.7)
         ]
@@ -100,6 +95,7 @@ def construct_index(
     separator=" ",
     num_children=10,
     max_keywords_per_chunk=10,
+    llm=None
 ):
     chunk_size_limit = None if chunk_size_limit == 0 else chunk_size_limit
     embedding_limit = None if embedding_limit == 0 else embedding_limit
@@ -120,7 +116,6 @@ def construct_index(
     documents = get_documents(file_src)
 
     try:
-        file_name = f"{index_name}.json"
         if index_type == "_GPTVectorStoreIndex":
             index = GPTVectorStoreIndex.from_documents(documents, service_context=service_context)
         else:
@@ -156,7 +151,17 @@ def chat_ai(
     if search_mode:
         index_select = search_construct(question, search_mode, index_select)
     logging.debug(f"Index: {index_select}")
-
+    llm = LlamaCpp(model_path=model_path,
+        n_ctx=500, 
+        use_mlock=True,
+        n_parts=-1, 
+        temperature=temprature, 
+        top_p=0.40,
+        last_n_tokens_size=400,
+        n_threads=4,
+        f16_kv=True,
+        max_tokens=400
+    )
     response = ask_ai(
         index_select,
         question,
@@ -165,9 +170,10 @@ def chat_ai(
         sim_k,
         temprature,
         context,
-
+        llm
     )
     print(response)
+    
 
     if response is None:
         response = llm._call(question)
@@ -188,24 +194,23 @@ def ask_ai(
     sim_k=1,
     temprature=0,
     prefix_messages=[],
+    llm=None
 ):
-    index_path = f"./index/{index_select}.json"
-    logging.debug(f"Index path: {index_path}")
-    if not os.path.exists(index_path):
-        logging.debug("Index file not found")
-        return None
-
-    logging.debug("Index file found")
     logging.debug("Querying index...")
     prompt_helper = PromptHelper(
         4096,
         512,
-        20,
-        None,
-        None,
-        separator=" ",
+        20
     )
-    service_context = ServiceContext.from_defaults(llm_predictor=llm, prompt_helper=prompt_helper)
+    embeddings = HuggingFaceEmbeddings(model_kwargs={"device": "mps"})
+    embed_model = LangchainEmbedding(embeddings)
+    llm_predictor = LLMPredictor(
+        llm=llm
+    )
+    service_context = ServiceContext.from_defaults(llm_predictor=llm_predictor, embed_model=embed_model, prompt_helper=prompt_helper)
+    # node_parser = SimpleNodeParser(text_splitter=CharacterTextSplitter(chunk_size=1000))
+    #qa_prompt = QuestionAnswerPrompt(prompt_tmpl)
+    #rf_prompt = RefinePrompt(refine_tmpl)
     response = None  # Initialize response variable to avoid UnboundLocalError
     logging.debug("Using GPTVectorStoreIndex")
     storage_context = StorageContext.from_defaults(
@@ -214,9 +219,7 @@ def ask_ai(
         index_store=SimpleIndexStore.from_persist_dir(persist_dir="./index"),
     )
     index = load_index_from_storage(service_context=service_context, storage_context=storage_context)
-    #qa_prompt = QuestionAnswerPrompt(prompt_tmpl)
-    #rf_prompt = RefinePrompt(refine_tmpl)
-    response = query_llm(index, question, service_context=service_context)
+    response = query_llm(index, question, service_context)
 
     if response is not None:
         logging.info(f"Response: {response}")
@@ -234,6 +237,17 @@ def ask_ai(
 
 def search_construct(question, search_mode, index_select):
     print(f"You asked: {question}")
+    llm = LlamaCpp(model_path=model_path,
+        n_ctx=500, 
+        use_mlock=True,
+        n_parts=-1, 
+        temperature=0.5, 
+        top_p=0.40,
+        last_n_tokens_size=400,
+        n_threads=4,
+        f16_kv=True,
+        max_tokens=400
+    )
     chat = llm
     search_terms = (
         chat.generate(
