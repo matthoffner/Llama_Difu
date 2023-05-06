@@ -35,7 +35,7 @@ with gr.Blocks(css="") as demo:
             with gr.Column(scale=1):
                 chat_tone = gr.Radio(["smart", "concise", "creative"], label="chat_tone", type="index", value="concise")
             with gr.Column(scale=3):
-                search_options_checkbox = gr.CheckboxGroup(label="APIs", choices=["📚 Google", "🦆 DuckDuckGo", "Manual"])
+                search_options_checkbox = gr.CheckboxGroup(label="APIs", choices=["📚 Google", "Manual"])
         chatbot = gr.Chatbot()
         with gr.Row():
             with gr.Column(min_width=50, scale=1):
