@@ -13,8 +13,8 @@ PromptHelper.compact_text_chunks = compact_text_chunks
 
 with gr.Blocks(css="") as demo:
     with gr.Box():
-        gr.Markdown("<h1 style='font-size: 48px; text-align: center;'>📚  Llama Difu  📓</h1>")
-        gr.Markdown("<h3 style='text-align: center;'>Powered by Llama-index, Llama.cpp</h3>")
+        gr.Markdown("<h1 style='font-size: 48px; text-align: center;'>📚  LLaMa Difu  📓</h1>")
+        gr.Markdown("<h3 style='text-align: center;'>LLaMa Do It For U 🦙</h3>")
         
     chat_context = gr.State([])
     new_google_chat_context = gr.State([])
@@ -62,7 +62,7 @@ with gr.Blocks(css="") as demo:
     with gr.Tab("Upload"):
         with gr.Row():
             with gr.Column():
-                index_type = gr.Dropdown(choices=["GPTListIndex", "GPTVectorStoreIndex"], label="index_type", value="GPTListIndex")
+                index_type = gr.Dropdown(choices=["GPTListIndex", "GPTVectorStoreIndex"], label="index_type", value="GPTVectorStoreIndex")
                 upload_file = gr.Files(label="upload_file .txt, .pdf, .epub)")
                 new_index_name = gr.Textbox(placeholder="new_index_name: ", show_label=False).style(container=False)
                 construct_btn = gr.Button("⚒️ Index", variant="primary")
@@ -98,5 +98,5 @@ with gr.Blocks(css="") as demo:
 
 
 if __name__ == "__main__":
-    demo.title = "Llama Difu"
+    demo.title = "LLaMa Do It For U"
     demo.queue().launch()
