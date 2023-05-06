@@ -41,7 +41,6 @@ model_path = args.model
 def query_llm(index, prompt, service_context, retriever_mode='embedding', response_mode='tree_summarize'):
     response_synthesizer = ResponseSynthesizer.from_args(
         service_context=service_context,
-        use_async=True,
         node_postprocessors=[
             SimilarityPostprocessor(similarity_cutoff=0.7)
         ]
@@ -94,13 +93,23 @@ def construct_index(
     embedding_limit=None,
     separator=" ",
     num_children=10,
-    max_keywords_per_chunk=10,
-    llm=None
+    max_keywords_per_chunk=10
 ):
     chunk_size_limit = None if chunk_size_limit == 0 else chunk_size_limit
     embedding_limit = None if embedding_limit == 0 else embedding_limit
     separator = " " if separator == "" else separator
 
+    llm = LlamaCpp(model_path=model_path,
+        n_ctx=2048, 
+        use_mlock=True,
+        n_parts=-1, 
+        temperature=0.7, 
+        top_p=0.40,
+        last_n_tokens_size=200,
+        n_threads=4,
+        f16_kv=True,
+        max_tokens=400
+    )
     llm_predictor = LLMPredictor(
         llm=llm
     )
@@ -151,17 +160,6 @@ def chat_ai(
     if search_mode:
         index_select = search_construct(question, search_mode, index_select)
     logging.debug(f"Index: {index_select}")
-    llm = LlamaCpp(model_path=model_path,
-        n_ctx=500, 
-        use_mlock=True,
-        n_parts=-1, 
-        temperature=temprature, 
-        top_p=0.40,
-        last_n_tokens_size=400,
-        n_threads=4,
-        f16_kv=True,
-        max_tokens=400
-    )
     response = ask_ai(
         index_select,
         question,
@@ -169,11 +167,9 @@ def chat_ai(
         refine_tmpl,
         sim_k,
         temprature,
-        context,
-        llm
+        context
     )
     print(response)
-    
 
     if response is None:
         response = llm._call(question)
@@ -193,14 +189,24 @@ def ask_ai(
     refine_tmpl,
     sim_k=1,
     temprature=0,
-    prefix_messages=[],
-    llm=None
+    prefix_messages=[]
 ):
     logging.debug("Querying index...")
     prompt_helper = PromptHelper(
         4096,
         512,
         20
+    )
+    llm = LlamaCpp(model_path=model_path,
+        n_ctx=500, 
+        use_mlock=True,
+        n_parts=-1, 
+        temperature=temprature, 
+        top_p=0.40,
+        last_n_tokens_size=400,
+        n_threads=4,
+        f16_kv=True,
+        max_tokens=400
     )
     embeddings = HuggingFaceEmbeddings(model_kwargs={"device": "mps"})
     embed_model = LangchainEmbedding(embeddings)
